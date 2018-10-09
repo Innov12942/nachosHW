@@ -100,7 +100,7 @@ class Thread {
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
-    void Print() { printf("%s, ", name); }
+    void Print() { printf("ThreadName:%s tid:%d uid:%d\n", name, threadID, userID); }
 
   private:
     // some of the private data for this class is listed above
@@ -128,6 +128,16 @@ class Thread {
 
     AddrSpace *space;			// User code this thread is running.
 #endif
+
+    /*additional members*/
+  private:
+    int userID;
+    int threadID;
+  public:
+    int getUid();
+    int getTid();
+    /*list all threads' states assuming 'this' equals 'currentThread'*/
+    void TS();
 };
 
 // Magical machine-dependent routines, defined in switch.s
@@ -144,3 +154,4 @@ void SWITCH(Thread *oldThread, Thread *newThread);
 }
 
 #endif // THREAD_H
+

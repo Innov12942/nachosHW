@@ -14,7 +14,7 @@
 #include "elevatortest.h"
 
 // testnum is set in main.cc
-int testnum = 1;
+int testnum = 2;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -53,21 +53,57 @@ ThreadTest1()
     SimpleThread(0);
 }
 
+/*My thread Test function*/
+void
+mySimpleThread(int which){
+    int num;
+    
+    for (num = 0; num < 5; num++) {
+        printf("*** thread tid:%d uid:%d looped %d times\n",
+         which, currentThread->getUid(), num);
+        currentThread->Yield();
+    }
+}
+
+void ThreadTest2(){
+    DEBUG("t", "Entering test2");
+    for(int i = 0; i < 129; i++){
+        Thread *t = new Thread("forked thread");
+        t->Fork(mySimpleThread, (void*)(t->getTid()));
+        printf("Thread tid:%d uid:%d is created\n", t->getTid(), t->getUid());
+    }
+}
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
 //----------------------------------------------------------------------
+void ThreadTest3(){
+    DEBUG("t", "Entering test3");
+    for(int i = 0; i < 5; i++){
+        Thread *t = new Thread("forked thread");
+        t->Fork(SimpleThread, (void*)(t->getTid()));
+    }
+    currentThread->TS();
+    SimpleThread(0);
+}
 
 void
 ThreadTest()
 {
     switch (testnum) {
     case 1:
-	ThreadTest1();
-	break;
+	       ThreadTest1();
+	       break;
+    case 2:
+            ThreadTest2();
+            break;
+    case 3:
+            ThreadTest3();
+            break;
     default:
-	printf("No test specified.\n");
+	       printf("No test specified.\n");
 	break;
     }
 }
+
 

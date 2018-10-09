@@ -19,6 +19,9 @@ Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 
+//tid[n] is 1 means there is a thread whose threadID is n
+bool tidPool[maxThreadNum];
+
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -77,6 +80,12 @@ TimerInterruptHandler(int dummy)
 void
 Initialize(int argc, char **argv)
 {
+    /*Additional*/
+    /*tidPool initialization*/
+    for(int i = 0; i < maxThreadNum; i++){
+        tidPool[i] = 0;
+    }
+
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
@@ -195,3 +204,18 @@ Cleanup()
     Exit(0);
 }
 
+/*choose a tid for thread*/
+int useableTid(){
+    for (int i = 0; i < maxThreadNum; ++i){
+        if(tidPool[i] == 0){
+            tidPool[i] = 1;
+            return i;
+        }
+    }
+    return -1;
+}
+
+/*thread gives up its tid when destroyed*/
+void releaseTid(int tid){
+    tidPool[tid] = 0;
+}

@@ -49,4 +49,12 @@ extern SynchDisk   *synchDisk;
 extern PostOffice* postOffice;
 #endif
 
+/*Additonal members*/
+/*number of threads limited to 128*/
+#define maxThreadNum 128
+extern bool tidPool[maxThreadNum];
+
+extern int useableTid();
+extern void releaseTid(int tid);
 #endif // SYSTEM_H
+

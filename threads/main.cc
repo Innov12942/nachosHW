@@ -95,6 +95,16 @@ main(int argc, char **argv)
         testnum = atoi(argv[1]);
         argCount++;
         break;
+      case 'S':
+      	if(argv[0][0] == 'T'){
+      		testnum = 3;
+      		break;
+      	}
+      	else{
+      		testnum = 1;
+      		printf("command not found!\n");
+      	}
+
       default:
         testnum = 1;
         break;
@@ -169,3 +179,4 @@ main(int argc, char **argv)
 				// it from returning.
     return(0);			// Not reached...
 }
+

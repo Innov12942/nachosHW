@@ -19,7 +19,7 @@
 #include "switch.h"
 #include "synch.h"
 #include "system.h"
-
+#include "unistd.h"
 #define STACK_FENCEPOST 0xdeadbeef	// this is put at the top of the
 					// execution stack, for detecting 
 					// stack overflows
@@ -41,6 +41,16 @@ Thread::Thread(char* threadName)
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
+
+    /*Additional*/
+    /*give thread a tid and uid with interrupt disabled to ensure automicity*/
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    if((this->threadID = useableTid()) == -1){
+        printf("Too many thread!\n");
+    }
+    ASSERT(this->threadID != -1);
+    this->userID = getuid();
+    (void) interrupt->SetLevel(oldLevel);
 }
 
 //----------------------------------------------------------------------
@@ -62,6 +72,12 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+
+    /*Additional*/
+    /*giveup tid with interrupt disabled to ensure automicity*/
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    releaseTid(this->threadID);
+    (void) interrupt->SetLevel(oldLevel);
 }
 
 //----------------------------------------------------------------------
@@ -318,3 +334,26 @@ Thread::RestoreUserState()
 	machine->WriteRegister(i, userRegisters[i]);
 }
 #endif
+
+/*additional members*/
+int
+Thread::getUid(){
+    return this->userID;
+}
+
+int 
+Thread::getTid(){
+    return this->threadID;
+}
+
+void
+Thread::TS(){
+    /*show all threads' state with interrupt disabled to ensure automicity*/
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    /*this function should be called by currentThread*/
+    ASSERT(this == currentThread);
+    printf("CurrenThread:\n");
+    Print();
+    scheduler->Print();
+    (void) interrupt->SetLevel(oldLevel);
+}

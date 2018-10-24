@@ -14,7 +14,7 @@
 #include "elevatortest.h"
 
 // testnum is set in main.cc
-int testnum = 5;
+int testnum = 1;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -53,106 +53,21 @@ ThreadTest1()
     SimpleThread(0);
 }
 
-/*My thread Test function*/
-void
-mySimpleThread(int which){
-    int num;
-    
-    for (num = 0; num < 5; num++) {
-        //printf("*** thread tid:%d uid:%d looped %d times\n",
-        // which, currentThread->getUid(), num);
-        //currentThread->Yield();
-    }
-}
-
-void ThreadTest2(){
-    DEBUG("t", "Entering test2");
-    for(int i = 0; i < 125; i++){
-        Thread *t = new Thread("forked thread");
-        t->Fork(mySimpleThread, (void*)(t->getTid()));
-    }
-    currentThread->Yield();
-    printf("tidPool: ");
-    for(int i = 0; i < maxThreadNum; i++){
-        printf("%d ", tidPool[i]);
-    }
-    scheduler->Print();
-}
 //----------------------------------------------------------------------
 // ThreadTest
-// 	Invoke a test routine to test TS.
+// 	Invoke a test routine.
 //----------------------------------------------------------------------
-void ThreadTest3(){
-    DEBUG("t", "Entering test3");
-    for(int i = 0; i < 5; i++){
-        Thread *t = new Thread("forked thread");
-        t->Fork(SimpleThread, (void*)(t->getTid()));
-    }
-    currentThread->TS();
-    SimpleThread(0);
-}
-
-//----------------------------------------------------------------------
-// ThreadTest
-//  Invoke a test routine to test priority.
-//----------------------------------------------------------------------
-void testPr(Thread* t){
-    for(int i = 0; i < 2; i++){
-        t->Print();
-        printf(" looped %d times\n", i);
-    }
-}
-
-void ThreadTest4(){
-    DEBUG("t", "Entering test4");
-    for(int i = 0; i < 4; i++){
-        Thread *t = new Thread("forked", i);
-        t->Fork(testPr, (void*)t);
-    }
-    testPr(currentThread);
-}
-
-void testTimer(Thread *t){
-    for(int i = 0; i < 10; i++){
-        t->Print();
-        printf(" looped %d times\n", i);
-        t->threadTick();
-        //printf("Total Ticks:%d\n", stats->totalTicks);
-    }
-}
-
-void ThreadTest5(){
-    DEBUG("t", "Entering test4");
-    for(int i = 0; i < 3; i++){
-        Thread *t = new Thread("forked");
-        t->Fork(testTimer, (void*)t);
-    }
-    testTimer(currentThread);
-}
 
 void
 ThreadTest()
 {
     switch (testnum) {
     case 1:
-	       ThreadTest1();
-	       break;
-    case 2:
-            ThreadTest2();
-            break;
-    case 3:
-            ThreadTest3();
-            break;
-    case 4:
-            ThreadTest4();
-            break;
-    case 5:
-            ThreadTest5();
-            break;
+	ThreadTest1();
+	break;
     default:
-	       printf("No test specified.\n");
+	printf("No test specified.\n");
 	break;
     }
 }
-
 

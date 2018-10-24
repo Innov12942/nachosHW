@@ -19,9 +19,6 @@ Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 
-//tid[n] is 1 means there is a thread whose threadID is n
-bool tidPool[maxThreadNum];
-
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -63,15 +60,8 @@ extern void Cleanup();
 static void
 TimerInterruptHandler(int dummy)
 {
-    if (interrupt->getStatus() != IdleMode){
-        if(stats->totalTicks - currentThread->ptime >= timeSlice){
-            currentThread->timeSlice_t --;
-            if(currentThread->timeSlice_t <= 0)
-                interrupt->YieldOnReturn();       
-        }
-    }
-    printf("\nA Timer Interrupt occurred at Total \
-Ticks:%d\n\n", stats->totalTicks);
+    if (interrupt->getStatus() != IdleMode)
+	interrupt->YieldOnReturn();
 }
 
 //----------------------------------------------------------------------
@@ -87,12 +77,6 @@ Ticks:%d\n\n", stats->totalTicks);
 void
 Initialize(int argc, char **argv)
 {
-    /*Additional*/
-    /*tidPool initialization*/
-    for(int i = 0; i < maxThreadNum; i++){
-        tidPool[i] = 0;
-    }
-
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
@@ -149,9 +133,8 @@ Initialize(int argc, char **argv)
     stats = new Statistics();			// collect statistics
     interrupt = new Interrupt;			// start up interrupt handling
     scheduler = new Scheduler();		// initialize the ready queue
-    //if (randomYield)				// start the timer (if needed)
+    if (randomYield)				// start the timer (if needed)
 	timer = new Timer(TimerInterruptHandler, 0, randomYield);
-
 
     threadToBeDestroyed = NULL;
 
@@ -212,18 +195,3 @@ Cleanup()
     Exit(0);
 }
 
-/*choose a tid for thread*/
-int useableTid(){
-    for (int i = 0; i < maxThreadNum; ++i){
-        if(tidPool[i] == 0){
-            tidPool[i] = 1;
-            return i;
-        }
-    }
-    return -1;
-}
-
-/*thread gives up its tid when destroyed*/
-void releaseTid(int tid){
-    tidPool[tid] = 0;
-}

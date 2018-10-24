@@ -55,9 +55,12 @@
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
 #define StackSize	(4 * 1024)	// in words
 
+#define defaultPr 1
+#define PrLevel 4
 
 // Thread state
 enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED };
+enum ThreadPr {HiPr, NormPr, LowPr, MinPr};
 
 // external function, dummy routine whose sole job is to call Thread::Print
 extern void ThreadPrint(int arg);	 
@@ -80,8 +83,13 @@ class Thread {
     int* stackTop;			 // the current stack pointer
     void *machineState[MachineStateSize];  // all registers except for stackTop
 
+    /*give each thread a priority value for scheduling*/
+    int priority_t;
+
+
   public:
     Thread(char* debugName);		// initialize a Thread 
+    Thread(char* debugName, int priority); //initialize with priority
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
@@ -100,7 +108,11 @@ class Thread {
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
-    void Print() { printf("ThreadName:%s tid:%d uid:%d\n", name, threadID, userID); }
+    void Print() {
+        char statusStr[][15] = { "JUST_CREATED", "RUNNING", "READY", "BLOCKED"}; 
+        printf("ThreadName:%s tid:%d uid:%d status:%s priority:%d",
+                name, threadID, userID, statusStr[status], priority_t); 
+    }
 
   private:
     // some of the private data for this class is listed above
@@ -134,10 +146,21 @@ class Thread {
     int userID;
     int threadID;
   public:
+    int timeSlice_t;
+    /*last time dispatched onto cpu*/
+    int ptime;
+    static int priorityToTime[PrLevel];
+  public:
     int getUid();
     int getTid();
+    int getPr(){ return priority_t ;};
+    bool isNewThread();
+    void regainTime();
+    void syncPtime();
     /*list all threads' states assuming 'this' equals 'currentThread'*/
     void TS();
+    /*make system to Tick*/
+    void threadTick();
 };
 
 // Magical machine-dependent routines, defined in switch.s

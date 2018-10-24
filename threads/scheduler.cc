@@ -56,7 +56,7 @@ Scheduler::ReadyToRun (Thread *thread)
     DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
 
     thread->setStatus(READY);
-    readyList->Append((void *)thread);
+    readyList->SortedInsert((void *)thread, thread->getPr());
 }
 
 //----------------------------------------------------------------------
@@ -125,6 +125,8 @@ Scheduler::Run (Thread *nextThread)
         delete threadToBeDestroyed;
 	threadToBeDestroyed = NULL;
     }
+
+    currentThread->syncPtime();
     
 #ifdef USER_PROGRAM
     if (currentThread->space != NULL) {		// if there is an address space
@@ -145,3 +147,4 @@ Scheduler::Print()
     printf("Ready list contents:\n");
     readyList->Mapcar((VoidFunctionPtr) ThreadPrint);
 }
+

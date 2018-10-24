@@ -63,8 +63,15 @@ extern void Cleanup();
 static void
 TimerInterruptHandler(int dummy)
 {
-    if (interrupt->getStatus() != IdleMode)
-	interrupt->YieldOnReturn();
+    if (interrupt->getStatus() != IdleMode){
+        if(stats->totalTicks - currentThread->ptime >= timeSlice){
+            currentThread->timeSlice_t --;
+            if(currentThread->timeSlice_t <= 0)
+                interrupt->YieldOnReturn();       
+        }
+    }
+    printf("\nA Timer Interrupt occurred at Total \
+Ticks:%d\n\n", stats->totalTicks);
 }
 
 //----------------------------------------------------------------------
@@ -142,8 +149,9 @@ Initialize(int argc, char **argv)
     stats = new Statistics();			// collect statistics
     interrupt = new Interrupt;			// start up interrupt handling
     scheduler = new Scheduler();		// initialize the ready queue
-    if (randomYield)				// start the timer (if needed)
+    //if (randomYield)				// start the timer (if needed)
 	timer = new Timer(TimerInterruptHandler, 0, randomYield);
+
 
     threadToBeDestroyed = NULL;
 

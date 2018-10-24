@@ -92,7 +92,7 @@ Semaphore::V()
 
     thread = (Thread *)queue->Remove();
     if (thread != NULL)	   // make thread ready, consuming the V immediately
-	scheduler->ReadyToRun(thread);
+	   scheduler->ReadyToRun(thread);
     value++;
     (void) interrupt->SetLevel(oldLevel);
 }
@@ -100,13 +100,65 @@ Semaphore::V()
 // Dummy functions -- so we can compile our later assignments 
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
-Lock::Lock(char* debugName) {}
-Lock::~Lock() {}
-void Lock::Acquire() {}
-void Lock::Release() {}
+Lock::Lock(char* debugName) {
+    name = debugName;
+    sp1 = new Semaphore(debugName, 1);
+}
+Lock::~Lock() {
+    delete sp1;
+}
+void 
+Lock::Acquire() {
+    sp1->P();
+    this->holder = currentThread;
+}
+void 
+Lock::Release() {
+    sp1->V();
+    this->holder = NULL;
+}
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+bool
+Lock::isHeldByCurrentThread(){
+    return this->holder == currentThread;
+} 
+
+Condition::Condition(char* debugName){
+    name = debugName;
+    cond_que = new List;
+}
+Condition::~Condition() { 
+    delete cond_que;
+}
+void Condition::Wait(Lock* conditionLock) { 
+
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    ASSERT(conditionLock->isHeldByCurrentThread());
+    cond_que-> Append((void*)currentThread);
+    conditionLock->Release();
+    currentThread->Sleep();
+    conditionLock->Acquire();
+    (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
+}
+void Condition::Signal(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    ASSERT(conditionLock->isHeldByCurrentThread());
+    Thread *thread = (Thread *)cond_que->Remove();
+    if (thread != NULL)    // make thread ready, consuming the V immediately
+       scheduler->ReadyToRun(thread);
+    (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
+}
+void Condition::Broadcast(Lock* conditionLock) {
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    ASSERT(conditionLock->isHeldByCurrentThread());
+    
+    Thread *thread = (Thread *)cond_que->Remove();
+    
+    while (thread != NULL){    // make thread ready, consuming the V immediately
+       scheduler->ReadyToRun(thread);
+       thread = (Thread *)cond_que->Remove();
+    }
+    
+    (void) interrupt->SetLevel(oldLevel);   // re-enable interrupts
+}
+

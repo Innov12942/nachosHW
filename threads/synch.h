@@ -80,6 +80,8 @@ class Lock {
   private:
     char* name;				// for debugging
     // plus some other stuff you'll need to define
+    Semaphore* sp1;
+    Thread *holder;
 };
 
 // The following class defines a "condition variable".  A condition
@@ -131,6 +133,8 @@ class Condition {
 
   private:
     char* name;
+    List* cond_que;
     // plus some other stuff you'll need to define
 };
 #endif // SYNCH_H
+

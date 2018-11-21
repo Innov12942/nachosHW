@@ -13,6 +13,7 @@
 #include "console.h"
 #include "addrspace.h"
 #include "synch.h"
+#include "thread.h"
 
 //----------------------------------------------------------------------
 // StartProcess
@@ -30,13 +31,25 @@ StartProcess(char *filename)
 	printf("Unable to open file %s\n", filename);
 	return;
     }
+
+/*    printf("Thread %s is allocating space for userprog\n", currentThread->getName());
     space = new AddrSpace(executable);    
     currentThread->space = space;
+    printf("Thread %s finished space for userprog\n", currentThread->getName());
 
+    if(currentThread->getName()[0] == 'm'){
+        Thread *t = new Thread("forked thread");
+        char *anotherFile = "../test/halt";
+        t->Fork(StartProcess, (void *)anotherFile);
+        currentThread->Yield();
+    }
+*/
     delete executable;			// close file
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
+
+    printf("Thread %s start to run userprog\n",currentThread->getName());
 
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;
@@ -82,3 +95,4 @@ ConsoleTest (char *in, char *out)
 	if (ch == 'q') return;  // if q, quit
     }
 }
+

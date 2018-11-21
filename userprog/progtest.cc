@@ -32,6 +32,8 @@ StartProcess(char *filename)
 	return;
     }
 
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
 /*    printf("Thread %s is allocating space for userprog\n", currentThread->getName());
     space = new AddrSpace(executable);    
     currentThread->space = space;

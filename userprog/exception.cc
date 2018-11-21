@@ -57,30 +57,30 @@
 #define LRUMaxVal 100
 
 //with vm on disk
-int kickOut(){
-    int pageNum = currentThread->space->KickOnePageOut();
-    ASSERT(pageNum != -1);
-    return pageNum;
-}
-
 void Disk2Mem(int vpn){
-    int dpn = pageTable[vpn].DiskPage;
-    int getOnePP = machine->bmForpm->Find();
+    int dpn = machine->pageTable[vpn].DiskPage;
+   // printf("num clear %d\n", machine->bmForPm->NumClear());
+    int getOnePP = machine->bmForPm->Find();
     if(getOnePP == -1){
-        getOnePP = kickOut();
+        getOnePP = currentThread->space->KickOnePageOut();
+        int findOnePP = machine->bmForPm->Find();
+        ASSERT(getOnePP == findOnePP)
+        printf("kick one physical page %d out of memory\n", getOnePP);
     }
+    ASSERT(getOnePP != -1);
 
     OpenFile *vmFile = fileSystem->Open("virMem");
     vmFile->ReadAt(machine->mainMemory + getOnePP * PageSize, 
         PageSize, dpn * PageSize);
-    pageTable[vpn].valid = TRUE;
-    pageTable[vpn].physicalPage = getOnePP;
-    pageTable[vpn].dirty = FALSE;
+    machine->pageTable[vpn].valid = TRUE;
+    machine->pageTable[vpn].physicalPage = getOnePP;
+    machine->pageTable[vpn].dirty = FALSE;
+    printf("disk page %d loaded to memory\n", dpn);
     delete vmFile;
 }
 
 void Vp2Tlb(int pos, int missVpn){
-    if(pageTable[missVpn].valid)
+    if(machine->pageTable[missVpn].valid)
         machine->tlb[pos] = machine->pageTable[missVpn];
     else{
         Disk2Mem(missVpn);

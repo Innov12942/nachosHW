@@ -87,6 +87,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
 // first, set up the translation 
+    OpenFile *vmFile = fileSystem->Open("virMem");
+    ASSERT(vmFile != NULL);
+
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
@@ -100,7 +103,14 @@ AddrSpace::AddrSpace(OpenFile *executable)
 					// a separate page, we could set its 
 					// pages to be read-only
     pageTable[i].DiskPage = dmNo;
-    bzero(machine->mainMemory + pmNo * PageSize, PageSize);
+    //bzero(machine->mainMemory + pmNo * PageSize, PageSize);
+    char c = 0;
+/*    int x;
+    scanf("%d", &x);*/
+    for(int i = 0; i < PageSize; i++){
+        //printf("##");
+        vmFile->WriteAt(&c, 1, dmNo * PageSize + i);
+    }
     }
     
 // zero out the entire address space, to zero the unitialized data segment 
@@ -108,7 +118,6 @@ AddrSpace::AddrSpace(OpenFile *executable)
     //bzero(machine->mainMemory, size);
 
 // then, copy in the code and data segments into memory
-     OpenFile *vmFile = fileSystem->Open("virMem");
 
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
@@ -124,6 +133,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
                 1, noffH.code.inFileAddr + k);
         }
   */
+        //printf("code seg %d\n", (noffH.code.virtualAddr) / PageSize);
         for(int k = 0; k < noffH.code.size; k++){
             int codeVpn = (noffH.code.virtualAddr + k) / PageSize;
             int offset = (noffH.code.virtualAddr + k) % PageSize;
@@ -196,23 +206,29 @@ int
 AddrSpace::KickOnePageOut(){
     for(int i = 0; i < numPages; i++){
         if(pageTable[i].valid){
-            for(int i = 0; i < TLBSize; i++){
-                if(tlb[i].virtualPage == pageTable[i].virtualPage)
-                    tlb[i].valid == FALSE;
+            for(int j = 0; j < TLBSize; j++){
+                if(machine->tlb[j].virtualPage == pageTable[i].virtualPage){
+                    printf("kick vp %d pp %d in tlb %d out while KickOnePageOut\n",
+                     pageTable[i].virtualPage, pageTable[i].physicalPage ,j);
+                    machine->tlb[j].valid == FALSE;
+                }
             }
 
             pageTable[i].valid = FALSE;
             machine->bmForPm->Clear(pageTable[i].physicalPage);
-            pageTable[i].DiskPage = machine->bmForDm->Find();
+            //pageTable[i].DiskPage = machine->bmForDm->Find();
             ASSERT(pageTable[i].DiskPage != -1);
-            if(true || pageTable[i].dirty){
+
+            if(pageTable[i].dirty){
+                printf("AddrSpace kick vp %d to disk\n", i);
                 OpenFile *vmFile = fileSystem->Open("virMem");
                 ASSERT(vmFile != NULL);
                 vmFile->WriteAt(machine->mainMemory + pageTable[i].physicalPage * PageSize,
                     PageSize, pageTable[i].DiskPage * PageSize);
                 delete vmFile;
             }
-            return i;
+            printf("return num %d\n", pageTable[i].physicalPage);
+            return pageTable[i].physicalPage;
         }
     }
 

@@ -85,9 +85,10 @@ main(int argc, char **argv)
 					// for a particular command
 
     DEBUG('t', "Entering main");
+    printf("start initializing\n");
     (void) Initialize(argc, argv);
-    
-#ifdef THREADS
+    printf("finish initializing\n");
+/*#ifdef THREADS
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
       argCount = 1;
       switch (argv[0][1]) {
@@ -102,13 +103,15 @@ main(int argc, char **argv)
     }
 
     ThreadTest();
-#endif
-
+#endif*/
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;
-        if (!strcmp(*argv, "-z"))               // print copyright
+        if (!strcmp(*argv, "-z")){               // print copyright
+        	printf("nachos -z\n");
             printf (copyright);
+        }
 #ifdef USER_PROGRAM
+
         if (!strcmp(*argv, "-x")) {        	// run a user program
 	    ASSERT(argc > 1);
             StartProcess(*(argv + 1));
@@ -128,6 +131,7 @@ main(int argc, char **argv)
 #endif // USER_PROGRAM
 #ifdef FILESYS
 	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
+		printf("-cp!\n");
 	    ASSERT(argc > 2);
 	    Copy(*(argv + 1), *(argv + 2));
 	    argCount = 3;
@@ -169,3 +173,4 @@ main(int argc, char **argv)
 				// it from returning.
     return(0);			// Not reached...
 }
+

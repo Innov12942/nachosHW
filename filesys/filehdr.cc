@@ -148,3 +148,39 @@ FileHeader::Print()
     }
     delete [] data;
 }
+
+void
+FileHeader::setType(const char *name){
+    char buf[30];
+    strcpy(buf, name);
+    int len = strlen(name);
+    int i = 0;
+    for(i = 0; i < len; i++)
+        if(buf[i] == '.')
+            break;
+    if(i + 4 < len)
+        buf[i + 4] = '\0';
+    if(i < len - 1){
+        const char *tmp = buf + i + 1;
+        strcpy(type, tmp);
+    }
+    else{
+        const char *tmp = "??";
+        strcpy(type, tmp);
+    }
+}
+
+void 
+FileHeader::setCreate_t(){
+    time(&create_t);
+}
+
+void 
+FileHeader::setVisit_t(){
+    time(&visit_t);
+}
+
+void 
+FileHeader::setModify_t(){
+    time(&modify_t);
+}

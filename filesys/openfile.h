@@ -61,6 +61,7 @@ class OpenFile {
 #else // FILESYS
 class FileHeader;
 
+
 class OpenFile {
   public:
     OpenFile(int sector);		// Open a file whose header is located
@@ -85,6 +86,7 @@ class OpenFile {
 					// file (this interface is simpler 
 					// than the UNIX idiom -- lseek to 
 					// end of file, tell, lseek back 
+    int getDirSec();
     
   private:
     FileHeader *hdr;			// Header for this file 
@@ -94,3 +96,4 @@ class OpenFile {
 #endif // FILESYS
 
 #endif // OPENFILE_H
+

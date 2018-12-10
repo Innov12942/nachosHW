@@ -79,12 +79,13 @@
 
 FileSystem::FileSystem(bool format)
 { 
+    printf("Initializing the file system\n" );
     DEBUG('f', "Initializing the file system.\n");
     if (format) {
         BitMap *freeMap = new BitMap(NumSectors);
         Directory *directory = new Directory(NumDirEntries);
-	FileHeader *mapHdr = new FileHeader;
-	FileHeader *dirHdr = new FileHeader;
+	    FileHeader *mapHdr = new FileHeader;
+	    FileHeader *dirHdr = new FileHeader;
 
         DEBUG('f', "Formatting the file system.\n");
 
@@ -104,10 +105,16 @@ FileSystem::FileSystem(bool format)
     // reads the file header off of disk (and currently the disk has garbage
     // on it!).
 
+    mapHdr->initHeader();
+    mapHdr->setFDS(DirectorySector);
+    dirHdr->initHeader();
+    dirHdr->setFDS(DirectorySector);
+
         DEBUG('f', "Writing headers back to disk.\n");
 	mapHdr->WriteBack(FreeMapSector);    
 	dirHdr->WriteBack(DirectorySector);
 
+    printf("write back\n");
     // OK to open the bitmap and directory files now
     // The file system operations assume these two files are left open
     // while Nachos is running.
@@ -130,9 +137,9 @@ FileSystem::FileSystem(bool format)
 	    directory->Print();
 
         delete freeMap; 
-	delete directory; 
-	delete mapHdr; 
-	delete dirHdr;
+        delete directory; 
+        delete mapHdr; 
+        delete dirHdr;
 	}
     } else {
     // if we are not formatting the disk, just open the files representing
@@ -140,6 +147,8 @@ FileSystem::FileSystem(bool format)
         freeMapFile = new OpenFile(FreeMapSector);
         directoryFile = new OpenFile(DirectorySector);
     }
+    curDir = directoryFile;
+    curDirSec = DirectorySector;
 }
 
 //----------------------------------------------------------------------
@@ -172,7 +181,7 @@ FileSystem::FileSystem(bool format)
 //----------------------------------------------------------------------
 
 bool
-FileSystem::Create(char *name, int initialSize)
+FileSystem::Create(char *name, int initialSize, bool ifDir)
 {
     Directory *directory;
     BitMap *freeMap;
@@ -183,7 +192,8 @@ FileSystem::Create(char *name, int initialSize)
     DEBUG('f', "Creating file %s, size %d\n", name, initialSize);
 
     directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
+    directory->FetchFrom(curDir);
+
 
     if (directory->Find(name) != -1)
       success = FALSE;			// file is already in directory
@@ -193,21 +203,35 @@ FileSystem::Create(char *name, int initialSize)
         sector = freeMap->Find();	// find a sector to hold the file header
     	if (sector == -1) 		
             success = FALSE;		// no free block for file header 
-        else if (!directory->Add(name, sector))
+        else if (!directory->Add(name, sector, ifDir))
             success = FALSE;	// no space in directory
-	else {
-    	    hdr = new FileHeader;
-	    if (!hdr->Allocate(freeMap, initialSize))
-            	success = FALSE;	// no space on disk for data
-	    else {	
-	    	success = TRUE;
-		// everthing worked, flush all changes back to disk
-    	    	hdr->WriteBack(sector); 		
-    	    	directory->WriteBack(directoryFile);
-    	    	freeMap->WriteBack(freeMapFile);
-	    }
+        else {
+            hdr = new FileHeader;
+            if (!hdr->Allocate(freeMap, initialSize))
+                success = FALSE;	// no space on disk for data
+            else {	
+
+                success = TRUE;
+                // everthing worked, flush all changes back to disk
+                hdr->initHeader();
+                hdr->setFDS(curDirSec);
+                hdr->setType(name);
+                hdr->WriteBack(sector); 		
+                directory->WriteBack(curDir);
+                freeMap->WriteBack(freeMapFile);
+
+                if(ifDir){
+                    Directory *tmpDir = new Directory(NumDirEntries);
+                    tmpDir->FetchFrom(&OpenFile(hdr));;
+                    bool flag = false;
+                    tmpDir->Add("..", curDir->getDirSec(), flag);
+                    tmpDir->Add(".", curDirSec, flag);
+                    tmpDir->WriteBack(&OpenFile(hdr));
+                    delete tmpDir;
+                }
+            }
             delete hdr;
-	}
+            }
         delete freeMap;
     }
     delete directory;
@@ -227,13 +251,25 @@ FileSystem::Create(char *name, int initialSize)
 OpenFile *
 FileSystem::Open(char *name)
 { 
+    char dirNa = name;
+    if(name[0] == "/"){
+        int len = strlen(name);
+        for(int i = len - 1; i >= 0; i--)
+            if(name[i] == '/'){
+                name[i] = '\0';
+                dirNa = name + i + 1;
+                cd(name);
+                break;
+            }
+    }
+
     Directory *directory = new Directory(NumDirEntries);
     OpenFile *openFile = NULL;
     int sector;
 
     DEBUG('f', "Opening file %s\n", name);
-    directory->FetchFrom(directoryFile);
-    sector = directory->Find(name); 
+    directory->FetchFrom(curDir);
+    sector = directory->Find(dirNa); 
     if (sector >= 0) 		
 	openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;
@@ -263,7 +299,7 @@ FileSystem::Remove(char *name)
     int sector;
     
     directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
+    directory->FetchFrom(curDir);
     sector = directory->Find(name);
     if (sector == -1) {
        delete directory;
@@ -280,7 +316,7 @@ FileSystem::Remove(char *name)
     directory->Remove(name);
 
     freeMap->WriteBack(freeMapFile);		// flush to disk
-    directory->WriteBack(directoryFile);        // flush to disk
+    directory->WriteBack(curDir);        // flush to disk
     delete fileHdr;
     delete directory;
     delete freeMap;
@@ -339,3 +375,117 @@ FileSystem::Print()
     delete freeMap;
     delete directory;
 } 
+
+
+void 
+FileSystem::cd(char *name){
+    bool succes = true;
+    int len = strlen(name);
+    char *curp = name;
+    Directory *directory = new Directory(NumDirEntries);
+
+    int cds = curDirSec;
+    int nds;
+
+    for(int i = 0; i < len; i++){
+        if(name[i] == '/'){
+            name[i] = '\0';
+            
+            {
+                directory->FetchFrom(&OpenFile(cds));
+                int nds = directory->Find(curp);
+
+                if(directory->findDir(curp) == false){
+                    printf("cd failed! directory not existed!\n");
+                    return;
+                }
+
+                cds = nds;
+            
+            }
+            curp = name + i + 1;   
+        }
+    }
+
+    if((curp - name)!= len){
+        directory->FetchFrom(&OpenFile(cds));
+        int nds = directory->Find(curp);
+
+        if(directory->findDir(curp) == false){
+            printf("cd failed! directory not existed!\n");
+            return;
+        }
+
+        cds = nds;
+    }
+
+    curDirSec = cds;
+    curDir = new OpenFile(cds);
+    delete directory;
+}
+
+bool 
+FileSystem::mkfil(char *name, int initialSize){
+    char dirNa = name;
+    if(name[0] == "/"){
+        int len = strlen(name);
+        for(int i = len - 1; i >= 0; i--)
+            if(name[i] == '/'){
+                name[i] = '\0';
+                dirNa = name + i + 1;
+                cd(name);
+                break;
+            }
+    }
+    Create(dirNa, initialSize, FALSE);
+}
+
+bool 
+FileSystem::mkdir(char *name){
+    char dirNa = name;
+    if(name[0] == "/"){
+        int len = strlen(name);
+        for(int i = len - 1; i >= 0; i--)
+            if(name[i] == '/'){
+                name[i] = '\0';
+                dirNa = name + i + 1;
+                cd(name);
+                break;
+            }
+    }
+    Create(dirNa, DirectoryFileSize, TRUE);
+}
+
+void 
+FileSystem::pfl(char *name){
+    Directory *directory = new Directory(NumDirEntries);
+    directory->FetchFrom(curDir);
+    int sector = directory->Find(name);
+    if(sector == -1){
+        printf("file is not in current dir!\n");
+        return;
+    }
+    int cnt = 0;
+    char route[20][FileNameMaxLen]= {};
+    strcpy(route[cnt ++], name);
+
+    int fds = curDir->getDirSec();
+    int cds = curDirSec;
+
+    while(cds != DirectorySector){
+        OpenFile f = OpenFile(fds);
+        directory->FetchFrom(&f);
+        char *dirName = directory->findName(cds);
+        strcpy(route[cnt ++], dirName);
+        cds = fds;
+        fds = f.getDirSec();
+        ASSERT(cnt < 20);
+    }
+
+    for(int i = cnt - 1; i >= 0; i--){
+        printf("%s/\n", route[i]);
+    }
+
+    delete directory;
+}
+

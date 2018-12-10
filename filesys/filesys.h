@@ -74,10 +74,17 @@ class FileSystem {
 					// the disk, so initialize the directory
     					// and the bitmap of free blocks.
 
-    bool Create(char *name, int initialSize);  	
+    bool Create(char *name, int initialSize, bool ifDir);  	
 					// Create a file (UNIX creat)
 
+    bool mkfil(char *name, int initialSize);
+    bool mkdir(char *name);
+
     OpenFile* Open(char *name); 	// Open a file (UNIX open)
+
+    void pfl(char *name);
+
+    void cd(char *name);
 
     bool Remove(char *name);  		// Delete a file (UNIX unlink)
 
@@ -90,8 +97,11 @@ class FileSystem {
 					// represented as a file
    OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
+   OpenFile* curDir;
+   int curDirSec;
 };
 
 #endif // FILESYS
 
 #endif // FS_H
+

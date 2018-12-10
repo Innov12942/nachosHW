@@ -28,9 +28,21 @@
 // 	Copy the contents of the UNIX file "from" to the Nachos file "to"
 //----------------------------------------------------------------------
 
+void MyTest(){
+    printf("MyTest\n");
+    OpenFile* openFile;
+    fileSystem->mkfil("a1", 0);
+    printf("mkfila1\n");
+    fileSystem->mkdir("d1");
+    fileSystem->mkfil("a2", 0);
+}
+
 void
 Copy(char *from, char *to)
 {
+
+    MyTest();
+    return;
     FILE *fp;
     OpenFile* openFile;
     int amountRead, fileLength;
@@ -49,7 +61,7 @@ Copy(char *from, char *to)
 
 // Create a Nachos file of the same length
     DEBUG('f', "Copying file %s, size %d, to file %s\n", from, fileLength, to);
-    if (!fileSystem->Create(to, fileLength)) {	 // Create Nachos file
+    if (!fileSystem->mkfil(to, fileLength)) {	 // Create Nachos file
 	printf("Copy: couldn't create output file %s\n", to);
 	fclose(fp);
 	return;
@@ -121,7 +133,7 @@ FileWrite()
 
     printf("Sequential write of %d byte file, in %d byte chunks\n", 
 	FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, 0)) {
+    if (!fileSystem->mkfil(FileName, 0)) {
       printf("Perf test: can't create %s\n", FileName);
       return;
     }
@@ -182,4 +194,5 @@ PerformanceTest()
     }
     stats->Print();
 }
+
 

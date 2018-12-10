@@ -195,3 +195,9 @@ OpenFile::Length()
 { 
     return hdr->FileLength(); 
 }
+
+int
+OpenFile:: getDirSec(){
+    return hdr->getFDS();
+}
+

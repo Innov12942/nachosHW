@@ -24,6 +24,7 @@
 #include "utility.h"
 #include "filehdr.h"
 #include "directory.h"
+#include <ctime>
 
 //----------------------------------------------------------------------
 // Directory::Directory
@@ -41,7 +42,9 @@ Directory::Directory(int size)
     tableSize = size;
     for (int i = 0; i < tableSize; i++)
 	table[i].inUse = FALSE;
+
 }
+
 
 //----------------------------------------------------------------------
 // Directory::~Directory
@@ -127,7 +130,7 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector, bool ifDir)
 { 
     if (FindIndex(name) != -1)
 	return FALSE;
@@ -137,6 +140,7 @@ Directory::Add(char *name, int newSector)
             table[i].inUse = TRUE;
             strncpy(table[i].name, name, FileNameMaxLen); 
             table[i].sector = newSector;
+            table[i].isDir = ifDir;
         return TRUE;
 	}
     return FALSE;	// no space.  Fix when we have extensible files.
@@ -195,3 +199,4 @@ Directory::Print()
     printf("\n");
     delete hdr;
 }
+

@@ -80,7 +80,6 @@ Initialize(int argc, char **argv)
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
-
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
 #endif
@@ -91,7 +90,6 @@ Initialize(int argc, char **argv)
     double rely = 1;		// network reliability
     int netname = 0;		// UNIX socket name
 #endif
-    
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;
 	if (!strcmp(*argv, "-d")) {
@@ -128,7 +126,6 @@ Initialize(int argc, char **argv)
 	}
 #endif
     }
-
     DebugInit(debugArgs);			// initialize DEBUG messages
     stats = new Statistics();			// collect statistics
     interrupt = new Interrupt;			// start up interrupt handling
@@ -152,16 +149,20 @@ Initialize(int argc, char **argv)
 #endif
 
 #ifdef FILESYS
+
+
     synchDisk = new SynchDisk("DISK");
 #endif
 
 #ifdef FILESYS_NEEDED
+
     fileSystem = new FileSystem(format);
 #endif
 
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
 #endif
+    printf("!!\n");
 }
 
 //----------------------------------------------------------------------
@@ -194,4 +195,5 @@ Cleanup()
     
     Exit(0);
 }
+
 

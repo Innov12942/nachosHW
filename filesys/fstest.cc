@@ -31,18 +31,24 @@
 void MyTest(){
     printf("MyTest\n");
     OpenFile* openFile;
-    fileSystem->mkfil("a1", 0);
-    printf("mkfila1\n");
+    //printf("mkfila1\n");
     fileSystem->mkdir("d1");
-    fileSystem->mkfil("a2", 0);
+    fileSystem->cd("d1");
+    fileSystem->mkdir("d2");
+    fileSystem->cd("d2");
+    fileSystem->mkfil("a1", 4000);
+    fileSystem->pfl("a1");
+
+    //fileSystem->cd("/d1");
+    fileSystem->mkfil("/d1/d1_a1", 0);
 }
 
 void
 Copy(char *from, char *to)
 {
 
-    MyTest();
-    return;
+   /* MyTest();
+    return;*/
     FILE *fp;
     OpenFile* openFile;
     int amountRead, fileLength;
@@ -69,13 +75,15 @@ Copy(char *from, char *to)
     
     openFile = fileSystem->Open(to);
     ASSERT(openFile != NULL);
-    
+    printf("open file:%s\n", to);
 // Copy the data in TransferSize chunks
     buffer = new char[TransferSize];
     while ((amountRead = fread(buffer, sizeof(char), TransferSize, fp)) > 0)
 	openFile->Write(buffer, amountRead);	
     delete [] buffer;
 
+    fileSystem->printBitMap();
+    fileSystem->printInfo(to);
 // Close the UNIX and the Nachos files
     delete openFile;
     fclose(fp);
@@ -142,6 +150,10 @@ FileWrite()
 	printf("Perf test: unable to open %s\n", FileName);
 	return;
     }
+
+    //fileSystem->printBitMap();
+
+
     for (i = 0; i < FileSize; i += ContentSize) {
         numBytes = openFile->Write(Contents, ContentSize);
 	if (numBytes < 10) {
@@ -181,18 +193,60 @@ FileRead()
     delete openFile;	// close file
 }
 
+#define fname "rwFile"
+
+
+void reader(int arg){
+    OpenFile *tarF;
+    if(!(tarF = fileSystem->Open(fname))){
+        printf("cannot open file\n");
+        return;
+    }
+    char buf[ContentSize + 1];
+    printf("reader:%d start to read\n", arg);
+    tarF->Read(buf, ContentSize);
+    buf[ContentSize] = '\0';
+    printf("%s\n", buf);
+    delete tarF;
+    fileSystem->Remove(fname);
+}
+
+void writer(int arg){
+    printf("writer:%d\n", arg);
+    OpenFile *tarF;
+    if(!(tarF = fileSystem->Open(fname))){
+        printf("cannot open file\n");
+        return;
+    }
+    tarF->Write(Contents, ContentSize);
+    delete tarF;
+}
+
 void
 PerformanceTest()
 {
-    printf("Starting file system performance test:\n");
-    stats->Print();
+   /* printf("Starting file system performance test:\n");
+    //stats->Print();
     FileWrite();
-    FileRead();
-    if (!fileSystem->Remove(FileName)) {
+    FileRead();*/
+    /*if (!fileSystem->Remove(FileName)) {
       printf("Perf test: unable to remove %s\n", FileName);
       return;
+    }*/
+    //stats->Print();
+/*    fileSystem->mkfil(fname, ContentSize);
+    for(int i = 0; i < 2; i++){
+        Thread *t = new Thread("writer thread");
+        t->Fork(writer, (void *)i);
     }
-    stats->Print();
+    for(int i = 0; i < 3; i++){
+        Thread *t = new Thread("reader thread");
+        t->Fork(reader, (void *)i);
+    }
+    printf("main finished!\n");*/
+    fileSystem->WritePip(stdin);
+    fileSystem->ReadPip(stdout);
 }
+
 
 

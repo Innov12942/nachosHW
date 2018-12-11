@@ -59,6 +59,9 @@ Machine::Machine(bool debug)
     for (i = 0; i < NumTotalRegs; i++)
         registers[i] = 0;
     mainMemory = new char[MemorySize];
+    bmForPm = new BitMap(NumPhysPages);
+    bmForDm = new BitMap(NumDiskPages);
+
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
 #ifdef USE_TLB
@@ -83,6 +86,8 @@ Machine::Machine(bool debug)
 Machine::~Machine()
 {
     delete [] mainMemory;
+    if(bmForPm != NULL)
+        delete bmForPm;
     if (tlb != NULL)
         delete [] tlb;
 }

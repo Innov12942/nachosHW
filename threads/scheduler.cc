@@ -30,6 +30,7 @@
 Scheduler::Scheduler()
 { 
     readyList = new List; 
+    suspendList = new List;
 } 
 
 //----------------------------------------------------------------------
@@ -40,6 +41,7 @@ Scheduler::Scheduler()
 Scheduler::~Scheduler()
 { 
     delete readyList; 
+    delete suspendList;
 } 
 
 //----------------------------------------------------------------------
@@ -59,6 +61,24 @@ Scheduler::ReadyToRun (Thread *thread)
     readyList->Append((void *)thread);
 }
 
+void 
+Scheduler::goSuspend(Thread *thread){
+    thread->setStatus(Suspend);
+    suspendList->Append((void *)thread);
+    if(thread->getStatus() == READY)
+        readyList->Remove(thread);
+}
+
+void
+Scheduler::wakeUp(Thread *thread){
+    suspendList->Remove((void *)thread);
+    ReadyToRun(thread);
+}
+
+void 
+Scheduler::wakeUpOne(){
+    ReadyToRun(suspendList->Remove());
+}
 //----------------------------------------------------------------------
 // Scheduler::FindNextToRun
 // 	Return the next thread to be scheduled onto the CPU.

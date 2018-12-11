@@ -54,10 +54,10 @@
 // Size of the thread's private execution stack.
 // WATCH OUT IF THIS ISN'T BIG ENOUGH!!!!!
 #define StackSize	(4 * 1024)	// in words
-
+#define ofTableSize 10
 
 // Thread state
-enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED };
+enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED , Suspend};
 
 // external function, dummy routine whose sole job is to call Thread::Print
 extern void ThreadPrint(int arg);	 
@@ -79,7 +79,7 @@ class Thread {
     // THEY MUST be in this position for SWITCH to work.
     int* stackTop;			 // the current stack pointer
     void *machineState[MachineStateSize];  // all registers except for stackTop
-
+    int tid;
   public:
     Thread(char* debugName);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
@@ -88,7 +88,7 @@ class Thread {
 					// is called
 
     // basic thread operations
-
+    int getTid(){return tid;}
     void Fork(VoidFunctionPtr func, void *arg); 	// Make thread run (*func)(arg)
     void Yield();  				// Relinquish the CPU if any 
 						// other thread is runnable
@@ -99,8 +99,12 @@ class Thread {
     void CheckOverflow();   			// Check if thread has 
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
+    ThreadStatus getStatus(){return status;}
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
+
+    void suspendAnother(Thread *t);
+    void wakeAnother(Thread *t);
 
   private:
     // some of the private data for this class is listed above
@@ -127,6 +131,10 @@ class Thread {
     void RestoreUserState();		// restore user-level register state
 
     AddrSpace *space;			// User code this thread is running.
+    OpenFile *ofTable[ofTableSize];
+    int open(char *name);
+    void close(int id);
+
 #endif
 };
 
@@ -143,4 +151,6 @@ void ThreadRoot();
 void SWITCH(Thread *oldThread, Thread *newThread);
 }
 
+
 #endif // THREAD_H
+

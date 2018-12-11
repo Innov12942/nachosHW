@@ -13,6 +13,7 @@
 #include "console.h"
 #include "addrspace.h"
 #include "synch.h"
+#include "thread.h"
 
 //----------------------------------------------------------------------
 // StartProcess
@@ -27,22 +28,23 @@ StartProcess(char *filename)
     AddrSpace *space;
 
     if (executable == NULL) {
-	printf("Unable to open file %s\n", filename);
-	return;
+    printf("Unable to open file %s\n", filename);
+    return;
     }
     space = new AddrSpace(executable);    
     currentThread->space = space;
 
-    delete executable;			// close file
+    delete executable;          // close file
 
-    space->InitRegisters();		// set the initial register values
-    space->RestoreState();		// load page table register
+    space->InitRegisters();     // set the initial register values
+    space->RestoreState();      // load page table register
 
-    machine->Run();			// jump to the user progam
-    ASSERT(FALSE);			// machine->Run never returns;
-					// the address space exits
-					// by doing the syscall "exit"
+    machine->Run();         // jump to the user progam
+    ASSERT(FALSE);          // machine->Run never returns;
+                    // the address space exits
+                    // by doing the syscall "exit"
 }
+
 
 // Data structures needed for the console test.  Threads making
 // I/O requests wait on a Semaphore to delay until the I/O completes.
@@ -68,7 +70,7 @@ static void WriteDone(int arg) { writeDone->V(); }
 void 
 ConsoleTest (char *in, char *out)
 {
-    char ch;
+    /*char ch;
 
     console = new Console(in, out, ReadAvail, WriteDone, 0);
     readAvail = new Semaphore("read avail", 0);
@@ -80,5 +82,12 @@ ConsoleTest (char *in, char *out)
 	console->PutChar(ch);	// echo it!
 	writeDone->P() ;        // wait for write to finish
 	if (ch == 'q') return;  // if q, quit
+    }*/
+    char ch;
+    SyncConsole *syncCsl = new SyncConsole(in, out);
+     for (;;) {
+        ch = syncCsl->SyncGetChar();
+        syncCsl->SyncPutChar(ch);   // echo it!
+        if (ch == 'q') return;  // if q, quit
     }
 }

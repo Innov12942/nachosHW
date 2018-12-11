@@ -23,6 +23,9 @@
 #define STACK_FENCEPOST 0xdeadbeef	// this is put at the top of the
 					// execution stack, for detecting 
 					// stack overflows
+#define MaxThreadNum 65536
+extern BitMap tidMap;
+extern Thread *tidPool[MaxThreadNum];
 
 //----------------------------------------------------------------------
 // Thread::Thread
@@ -34,12 +37,21 @@
 
 Thread::Thread(char* threadName)
 {
+    tid = tidMap.Find();
+    if(tid == -1){
+        printf("Too many threads!\n");
+    }
+    ASSERT(tidPool[tid] == NULL);
+    tidPool[tid] = this;
+
     name = threadName;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
     space = NULL;
+    for(int i = 0; i < ofTableSize; i++)
+        ofTable[i] = NULL;
 #endif
 }
 
@@ -57,11 +69,19 @@ Thread::Thread(char* threadName)
 
 Thread::~Thread()
 {
+    tidMap.Clear(tid);
+    tidPool[tid] = NULL;
+
     DEBUG('t', "Deleting thread \"%s\"\n", name);
 
     ASSERT(this != currentThread);
     if (stack != NULL)
-	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+	   DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+#ifdef USER_PROGRAM
+    for(int i = 0; i < ofTableSize; i++)
+        if(ofTable[i] != NULL)
+            delete ofTable[i];
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -253,7 +273,6 @@ void
 Thread::StackAllocate (VoidFunctionPtr func, void *arg)
 {
     stack = (int *) AllocBoundedArray(StackSize * sizeof(int));
-
 #ifdef HOST_SNAKE
     // HP stack works from low addresses to high addresses
     stackTop = stack + 16;	// HP requires 64-byte frame marker
@@ -317,4 +336,35 @@ Thread::RestoreUserState()
     for (int i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, userRegisters[i]);
 }
+
+
+void 
+Thread::suspendAnother(Thread *t){
+    scheduler->goSuspend(t);
+}
+
+void 
+Thread::wakeAnother(Thread *t){
+    scheduler->wakeUp(t);
+}
+
+int 
+Thread::open(char *name){
+    for(int i = 0; i < ofTableSize; i++){
+        if(ofTable[i] == NULL){
+            ofTable[i] = fileSystem->Open(name);
+            return i;
+        }
+    }
+    return -1;
+}
+void 
+Thread::close(int id){
+    if(ofTable[id] != NULL){
+        delete ofTable[id];
+        ofTable[id] = NULL;
+    }
+}
+
+
 #endif

@@ -33,7 +33,7 @@ LD = $(GCCDIR)ld
 
 CPP = gcc -E
 INCDIR =-I../userprog -I../threads
-CFLAGS = -G 0 -c $(INCDIR)
+CFLAGS = -G 0 -c $(INCDIR) 
 
 all: halt shell matmult sort
 

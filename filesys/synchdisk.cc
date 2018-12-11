@@ -45,6 +45,13 @@ SynchDisk::SynchDisk(char* name)
     semaphore = new Semaphore("synch disk", 0);
     lock = new Lock("synch disk lock");
     disk = new Disk(name, DiskRequestDone, (int) this);
+
+    for(int i = 0; i < NumSectors; i++){
+        wLck[i] = new Lock("wLck");
+        cntLck[i] = new Lock("cntLck");
+        rdCnt[i] = 0;
+        visNum[i] = 0;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -58,6 +65,10 @@ SynchDisk::~SynchDisk()
     delete disk;
     delete lock;
     delete semaphore;
+    for(int i = 0; i < NumSectors; i++){
+        delete wLck[i];
+        delete cntLck[i];
+    }
 }
 
 //----------------------------------------------------------------------
@@ -107,3 +118,4 @@ SynchDisk::RequestDone()
 { 
     semaphore->V();
 }
+

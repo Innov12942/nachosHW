@@ -11,10 +11,21 @@
  */
 
 #include "syscall.h"
+int fd = 0;
+int bufSize= 8;
+char fname[20] = "testfile";
+char wBuf[20] = "deadbeaf";
+char rBuf[20];
 
 int
 main()
 {
-    Halt();
+    Create(fname);
+    fd = Open(fname);
+    Write(wBuf, bufSize, fd);
+    Read(rBuf, bufSize, fd);
+    Close(fd); 
+    Exit(0);
     /* not reached */
 }
+

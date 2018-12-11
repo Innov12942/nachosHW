@@ -85,9 +85,7 @@ main(int argc, char **argv)
 					// for a particular command
 
     DEBUG('t', "Entering main");
-    printf("start initializing\n");
     (void) Initialize(argc, argv);
-    printf("finish initializing\n");
 /*#ifdef THREADS
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
       argCount = 1;
@@ -131,7 +129,6 @@ main(int argc, char **argv)
 #endif // USER_PROGRAM
 #ifdef FILESYS
 	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
-		printf("-cp!\n");
 	    ASSERT(argc > 2);
 	    Copy(*(argv + 1), *(argv + 2));
 	    argCount = 3;

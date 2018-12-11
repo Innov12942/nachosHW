@@ -91,6 +91,10 @@ class FileSystem {
     void List();			// List all the files in the file system
 
     void Print();			// List all the files and their contents
+    void printInfo(char *name);
+    void printBitMap();
+    int ReadPip(FILE *f);
+    int WritePip(FILE *f);
 
   private:
    OpenFile* freeMapFile;		// Bit map of free disk blocks,
@@ -104,4 +108,5 @@ class FileSystem {
 #endif // FILESYS
 
 #endif // FS_H
+
 

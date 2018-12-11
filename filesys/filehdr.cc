@@ -45,9 +45,49 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
     numSectors  = divRoundUp(fileSize, SectorSize);
     if (freeMap->NumClear() < numSectors)
 	return FALSE;		// not enough space
+    
+    int remainSec = numSectors;
+    int secEachtime = remainSec;
+    int nxtSector = 0;
+    int loopCnt = 0;
+    int tmpSectors[SectorSize / sizeof(int)];
 
-    for (int i = 0; i < numSectors; i++)
-	dataSectors[i] = freeMap->Find();
+    while(remainSec > 0){
+        if(remainSec > NumDirect - 1)
+            secEachtime = NumDirect - 1;
+        else
+            secEachtime = remainSec;
+
+        if(loopCnt == 0)
+            for (int i = 0; i < secEachtime; i++)
+                dataSectors[i] = freeMap->Find();
+        else{
+            for (int i = 0; i < secEachtime; i++)
+                tmpSectors[i] = freeMap->Find();
+        }
+
+        if(remainSec > NumDirect - 1){
+            if(loopCnt == 0){
+                dataSectors[NumDirect - 1] = freeMap->Find();
+                nxtSector = dataSectors[NumDirect - 1];
+            }
+            else{
+                tmpSectors[NumDirect - 1] = freeMap->Find();
+                ASSERT(nxtSector > 0);
+                synchDisk->WriteSector(nxtSector, (char *)tmpSectors);
+                nxtSector = tmpSectors[NumDirect - 1];               
+            }
+        }
+        else{
+            if(loopCnt != 0){
+                ASSERT(nxtSector > 0);
+                synchDisk->WriteSector(nxtSector, (char *)tmpSectors);
+            }
+        }
+
+        remainSec -=  (NumDirect - 1);
+        loopCnt ++;
+    }
     return TRUE;
 }
 
@@ -62,8 +102,8 @@ void
 FileHeader::Deallocate(BitMap *freeMap)
 {
     for (int i = 0; i < numSectors; i++) {
-	ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-	freeMap->Clear((int) dataSectors[i]);
+	   ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+	   freeMap->Clear((int) dataSectors[i]);
     }
 }
 
@@ -106,7 +146,35 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+    int numBytes = offset;
+    int numSectors  = offset / SectorSize + 1;
+
+    int remainSec = numSectors;
+    int nxtSector = 0;
+    int loopCnt = 0; 
+    int curSecAry[SectorSize / sizeof(int)];
+    while(remainSec > 0){
+        if(loopCnt != 0)
+            synchDisk->ReadSector(nxtSector, (char *)curSecAry);
+        if(remainSec > NumDirect - 1){
+            if(loopCnt != 0)
+                nxtSector = curSecAry[NumDirect - 1];
+            else
+                nxtSector = dataSectors[NumDirect - 1];
+        }
+        else{
+            if(loopCnt == 0)
+                return dataSectors[remainSec - 1];
+            else
+                return curSecAry[remainSec- 1];
+        }     
+        remainSec -=  NumDirect - 1;
+        loopCnt ++;
+    }
+
+    printf("ByteToSector error!\n");
+    ASSERT(false);
+    return dataSectors[offset / SectorSize];
 }
 
 //----------------------------------------------------------------------
@@ -170,6 +238,86 @@ FileHeader::setType(const char *name){
     }
 }
 
+bool
+FileHeader:: Extend(BitMap *freeMap, int size){
+    numBytes += size;
+    int originSecs = numSectors;
+    numSectors = divRoundUp(numBytes, SectorSize);
+    int additionalSecs = numSectors - originSecs;
+    if(additionalSecs == 0)
+        return true;
+    else if(freeMap->NumClear() < additionalSecs){
+        printf("Extend faild NumClear:%d\n",freeMap->NumClear() );
+        freeMap->Print();
+        return false;
+    }
+    int remainSec = numSectors;
+    int secEachtime = remainSec;
+    int nxtSector = 0;
+    int loopCnt = 0;
+    int tmpSectors[SectorSize / sizeof(int)];
+    while(remainSec > 0){
+        if(remainSec > NumDirect - 1)
+            secEachtime = NumDirect - 1;
+        else
+            secEachtime = remainSec;
+
+        if(originSecs - secEachtime >= 0){
+            if(originSecs == NumDirect - 1 && remainSec > NumDirect - 1)
+                int x;
+            else{
+                if(remainSec > NumDirect - 1){
+                    if(loopCnt == 0){
+                        nxtSector = dataSectors[NumDirect - 1];
+                        synchDisk->ReadSector(nxtSector, (char *)tmpSectors);
+                    }
+                    else{
+                        nxtSector = tmpSectors[NumDirect - 1];
+                        synchDisk->ReadSector(nxtSector, (char *)tmpSectors);
+                    } 
+                }
+                remainSec -=  secEachtime;-
+                loopCnt ++;
+                originSecs -= secEachtime;
+                continue;
+            }
+        }
+
+        if(loopCnt == 0)
+            for (int i = originSecs; i < secEachtime; i++)
+                dataSectors[i] = freeMap->Find();
+        else{
+            for (int i = originSecs; i < secEachtime; i++)
+                tmpSectors[i] = freeMap->Find();
+        }
+
+        if(remainSec > NumDirect - 1){
+            if(loopCnt == 0){
+                dataSectors[NumDirect - 1] = freeMap->Find();
+                nxtSector = dataSectors[NumDirect - 1];
+            }
+            else{
+                tmpSectors[NumDirect - 1] = freeMap->Find();
+                ASSERT(nxtSector > 0);
+                synchDisk->WriteSector(nxtSector, (char *)tmpSectors);
+                nxtSector = tmpSectors[NumDirect - 1];               
+            }
+        }
+        else{
+            if(loopCnt != 0){
+                ASSERT(nxtSector > 0);
+                synchDisk->WriteSector(nxtSector, (char *)tmpSectors);
+            }
+        }
+
+        remainSec -=  secEachtime;
+        loopCnt ++;
+        originSecs -= secEachtime;
+    }
+    return true;
+
+};
+
 void 
 FileHeader::setCreate_t(){
     time(&create_t);
@@ -184,3 +332,4 @@ void
 FileHeader::setModify_t(){
     time(&modify_t);
 }
+

@@ -18,7 +18,7 @@
 #include "bitmap.h"
 #include <ctime>
 
-#define NumDirect 	((SectorSize - 10 * sizeof(int)) / sizeof(int))
+#define NumDirect 	((SectorSize - 7 * sizeof(int)) / sizeof(int))
 #define MaxFileSize 	(NumDirect * SectorSize)
 
 // The following class defines the Nachos "file header" (in UNIX terms,  
@@ -57,6 +57,8 @@ class FileHeader {
 
     void Print();			// Print the contents of the file.
 
+    bool Extend(BitMap *freeMap, int size);
+
 
     void setCreate_t();
     void setVisit_t();
@@ -71,7 +73,17 @@ class FileHeader {
         setCreate_t();
         setVisit_t();
         setModify_t();
-        setType("\0");
+        //setType("\0");
+    }
+    void printSize(){
+        printf("time_t size:%lu\n", sizeof(time_t));
+        printf("size :%lu\n", sizeof(FileHeader));
+    }
+
+    void printHdrInfo(){
+        printf("creat time:%s visit time:%s modify time:%s type:%s\n",
+        asctime(gmtime(&create_t)), asctime(gmtime(&visit_t)), asctime(gmtime(&modify_t)),
+        type);
     }
 
   private:
@@ -87,4 +99,5 @@ class FileHeader {
 };
 
 #endif // FILEHDR_H
+
 

@@ -18,6 +18,10 @@ Interrupt *interrupt;			// interrupt status
 Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
+#define MaxThreadNum 65536
+BitMap tidMap = BitMap(MaxThreadNum);
+Thread *tidPool[MaxThreadNum];
+
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -149,8 +153,6 @@ Initialize(int argc, char **argv)
 #endif
 
 #ifdef FILESYS
-
-
     synchDisk = new SynchDisk("DISK");
 #endif
 
@@ -162,7 +164,7 @@ Initialize(int argc, char **argv)
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
 #endif
-    printf("!!\n");
+    
 }
 
 //----------------------------------------------------------------------

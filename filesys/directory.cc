@@ -162,7 +162,36 @@ Directory::Remove(char *name)
     if (i == -1)
 	return FALSE; 		// name not in directory
     table[i].inUse = FALSE;
+    if(table[i].isDir){
+        Directory *tmpD = new Directory(10);
+        tmpD->FetchFrom(table[i].sector);
+        for(int i = 0; i < tableSize; i++)
+            tmpD->RemoveAll();
+    }
     return TRUE;	
+}
+
+bool
+Directory::RemoveAll()
+{ 
+    for(int i = 0; i < tableSize; i++){
+        if(table[i].isDir){
+            Directory *tmpD = new Directory(10);
+            tmpD->FetchFrom(table[i].sector);
+            tmpD->RemoveAll();
+            table[i].inUse = FALSE;
+        }
+        else 
+            table[i].inUse = FALSE;  
+        FileHeader *fileHdr = new FileHeader;
+        fileHdr->FetchFrom(table[i].sector);
+        BitMap *freeMap = new BitMap(NumSectors);
+        freeMap->FetchFrom(&OpenFile(0));
+        fileHdr->Deallocate(freeMap);
+        delete fileHdr;
+        delete freeMap;
+    }
+    return TRUE;    
 }
 
 //----------------------------------------------------------------------
@@ -199,4 +228,5 @@ Directory::Print()
     printf("\n");
     delete hdr;
 }
+
 

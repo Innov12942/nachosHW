@@ -25,6 +25,7 @@
 #include "utility.h"
 #include "translate.h"
 #include "disk.h"
+#include "bitmap.h"
 
 // Definitions related to the size, and format of user memory
 
@@ -32,9 +33,11 @@
 					// the disk sector size, for
 					// simplicity
 
-#define NumPhysPages    32
+#define NumPhysPages    64
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
+#define NumDiskPages  64
+#define DiskSize (NumDiskPages * PageSize)
 
 enum ExceptionType { NoException,           // Everything ok!
 		     SyscallException,      // A program executed a system call.
@@ -182,6 +185,17 @@ class Machine {
     TranslationEntry *pageTable;
     unsigned int pageTableSize;
 
+    BitMap *bmForPm;
+    BitMap *bmForDm; 
+    void advancePC(){
+    // Advance program counters.
+        int pcAfter = registers[NextPCReg] + 4;
+        registers[PrevPCReg] = registers[PCReg];    // for debugging, in case we
+                            // are jumping into lala-land
+        registers[PCReg] = registers[NextPCReg];
+        registers[NextPCReg] = pcAfter;
+    }
+
   private:
     bool singleStep;		// drop back into the debugger after each
 				// simulated instruction
@@ -193,6 +207,10 @@ extern void ExceptionHandler(ExceptionType which);
 				// Entry point into Nachos for handling
 				// user system calls and exceptions
 				// Defined in exception.cc
+
+/*Additional part*/
+#define UseLRU
+extern void HitTlb(int which);
 
 
 // Routines for converting Words and Short Words to and from the

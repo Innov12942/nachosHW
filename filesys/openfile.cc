@@ -30,8 +30,11 @@
 OpenFile::OpenFile(int sector)
 { 
     hdr = new FileHeader;
+    //printf("openfile fetch sector\n");
     hdr->FetchFrom(sector);
+    hdrSector = sector;
     seekPosition = 0;
+    synchDisk->openF(sector);
 }
 
 //----------------------------------------------------------------------
@@ -41,6 +44,7 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
+    synchDisk->closeF(hdrSector);
     delete hdr;
 }
 
@@ -74,16 +78,22 @@ OpenFile::Seek(int position)
 int
 OpenFile::Read(char *into, int numBytes)
 {
+    synchDisk->readerIn(hdrSector);
+    currentThread->Yield();
    int result = ReadAt(into, numBytes, seekPosition);
-   seekPosition += result;
+   seekPosition += result; 
+
+   synchDisk->readerOut(hdrSector);
    return result;
 }
 
 int
 OpenFile::Write(char *into, int numBytes)
 {
+    synchDisk->writerIn(hdrSector);
    int result = WriteAt(into, numBytes, seekPosition);
    seekPosition += result;
+   synchDisk->writerOut(hdrSector);
    return result;
 }
 
@@ -151,10 +161,32 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
     bool firstAligned, lastAligned;
     char *buf;
 
-    if ((numBytes <= 0) || (position >= fileLength))
-	return 0;				// check request
-    if ((position + numBytes) > fileLength)
-	numBytes = fileLength - position;
+    if ((numBytes <= 0))
+	   return 0;				// check request
+    if(position >= fileLength && hdrSector != 0){
+
+        int addbytes = SectorSize;
+        BitMap *freeMap = new BitMap(NumSectors);
+        freeMap->FetchFrom(&OpenFile(0));
+        if(!hdr->Extend(freeMap, addbytes))
+            return 0;
+        hdr->WriteBack(hdrSector);
+        freeMap->WriteBack(&OpenFile(0));
+        delete freeMap;
+        fileLength = hdr->FileLength();
+    }
+    if ((position + numBytes) > fileLength && hdrSector != 0){
+        int addbytes = position + numBytes - fileLength;
+        addbytes = divRoundUp(addbytes, SectorSize) * SectorSize;
+        BitMap *freeMap = new BitMap(NumSectors);
+        freeMap->FetchFrom(&OpenFile(0));
+        if(!hdr->Extend(freeMap, addbytes))
+            return 0;
+        hdr->WriteBack(hdrSector);
+        freeMap->WriteBack(&OpenFile(0));
+        delete freeMap;
+        fileLength = hdr->FileLength();
+    }
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
 
@@ -200,4 +232,9 @@ int
 OpenFile:: getDirSec(){
     return hdr->getFDS();
 }
+void
+OpenFile::printHdrInfo(){
+    hdr->printHdrInfo();
+}
+
 

@@ -478,7 +478,6 @@ AllocBoundedArray(int size)
 {
     int pgSize = getpagesize();
     char *ptr = new char[pgSize * 2 + size];
-
     //mprotect(ptr, pgSize, 0);
     //mprotect(ptr + pgSize + size, pgSize, 0);
     return ptr + pgSize;
@@ -501,3 +500,4 @@ DeallocBoundedArray(char *ptr, int size)
     mprotect(ptr + size, pgSize, PROT_READ | PROT_WRITE | PROT_EXEC);
     delete [] (ptr - pgSize);
 }
+

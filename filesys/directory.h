@@ -65,6 +65,7 @@ class Directory {
     bool Add(char *name, int newSector, bool ifDir);  // Add a file name into the directory
 
     bool Remove(char *name);		// Remove a file from the directory
+    bool RemoveAll();
 
     void List();			// Print the names of all the files
 					//  in the directory
@@ -97,3 +98,4 @@ class Directory {
 };
 
 #endif // DIRECTORY_H
+

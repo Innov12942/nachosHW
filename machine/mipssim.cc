@@ -99,8 +99,9 @@ Machine::OneInstruction(Instruction *instr)
 				// in the future
 
     // Fetch instruction 
+   	//printf("Fetch instr at 0x%x\n", registers[PCReg]);
     if (!machine->ReadMem(registers[PCReg], 4, &raw))
-	return;			// exception occurred
+		return;			// exception occurred
     instr->value = raw;
     instr->Decode();
 

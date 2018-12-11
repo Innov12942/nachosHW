@@ -17,6 +17,9 @@
 #include "console.h"
 #include "system.h"
 
+static void ReadAvail(int arg) {((SyncConsole *)arg)->readAvail->V(); }
+static void WriteDone(int arg) {((SyncConsole *)arg)->writeDone->V(); }
+
 // Dummy functions because C++ is weird about pointers to member functions
 static void ConsoleReadPoll(int c) 
 { Console *console = (Console *)c; console->CheckCharAvail(); }
@@ -147,4 +150,35 @@ Console::PutChar(char ch)
     putBusy = TRUE;
     interrupt->Schedule(ConsoleWriteDone, (int)this, ConsoleTime,
 					ConsoleWriteInt);
+}
+
+SyncConsole::SyncConsole(char *readFile, char *writeFile){
+    csl = new Console(readFile, writeFile, ReadAvail, WriteDone, (int)(this));
+    readAvail = new Semaphore("read avail", 0);
+    writeDone = new Semaphore("write done", 0);
+    lock = new Lock("lck");
+}
+
+SyncConsole::~SyncConsole(){
+    delete csl;
+    delete readAvail;
+    delete writeDone;
+    delete lock;
+}
+
+void
+SyncConsole::SyncPutChar(char ch){
+    lock->Acquire();
+    csl->PutChar(ch);
+    writeDone->P();
+    lock->Release();
+}
+
+char
+SyncConsole::SyncGetChar(){
+    lock->Acquire();
+    readAvail->P();
+    char ch = csl->GetChar();
+    lock->Release();
+    return ch;
 }

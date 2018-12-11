@@ -41,6 +41,38 @@ class SynchDisk {
     void RequestDone();			// Called by the disk device interrupt
 					// handler, to signal that the
 					// current disk operation is complete.
+    void readerIn(int sc){
+        cntLck[sc]->Acquire();
+        if(rdCnt[sc]++ == 0)
+            wLck[sc]->Acquire();
+        printf("reader count:%d\n", rdCnt[sc]);
+        cntLck[sc]->Release();
+    }
+    void readerOut(int sc){
+        cntLck[sc]->Acquire();
+        if(rdCnt[sc]-- == 1)
+            wLck[sc]->Release();
+
+        cntLck[sc]->Release();
+    }
+
+    void writerIn(int sc){
+        wLck[sc]->Acquire();
+    }
+    void writerOut(int sc){
+        wLck[sc]->Release();
+    }
+    void openF(int sc){
+        visNum[sc]++;
+    }
+    void closeF(int sc){
+        visNum[sc]--;
+        ASSERT(visNum[sc] >= 0);
+    }
+    bool tryRemove(int sc){
+        //printf("visNum:%d\n", visNum[sc]);
+        return visNum[sc] == 0;
+    }
 
   private:
     Disk *disk;		  		// Raw disk device
@@ -48,6 +80,11 @@ class SynchDisk {
 					// with the interrupt handler
     Lock *lock;		  		// Only one read/write request
 					// can be sent to the disk at a time
+    Lock *wLck[NumSectors];
+    Lock *cntLck[NumSectors];
+    int rdCnt[NumSectors];
+    int visNum[NumSectors];
 };
 
 #endif // SYNCHDISK_H
+
